@@ -1,4 +1,4 @@
-package src;
+package model;
 import java.util.List;
 
 public abstract class Ability {

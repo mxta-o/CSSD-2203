@@ -1,9 +1,13 @@
-package src;
+package model;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.List;
 import java.util.ArrayList;
+import model.heroclass.OrderStrategy;
+import model.heroclass.ChaosStrategy;
+import model.heroclass.WarriorStrategy;
+import model.heroclass.MageStrategy;
 
 /**
  * Represents a hero in the Legends of Sword and Wand RPG.
@@ -12,23 +16,21 @@ public class Hero {
     private String name;
     private HeroClass heroClass;
     private int level;
-    private int attack;
-    private int defense;
-    private int healthPoints;
-    private int manaPoints;
     private int experience;
     private boolean isStunned;
     private boolean isAlive;
 
     private Map<HeroClass, Integer> classLevels;
     private HeroClass specializationClass; // First class to reach level 5
-    private HeroClass hybridClass; // Set when two classes reach level 5
+    private HeroClass hybridClass;         // Set when two classes reach level 5
+    private HeroClassStrategy classStrategy; // Active Strategy pattern implementation
     private int baseAttack;
     private int baseDefense;
     private int maxHealth;
     private int currentHealth;
     private int maxMana;
     private int currentMana;
+    private int shieldAmount; // Active shield HP absorbed before taking real damage
 
     private List<StatusEffect> statusEffects;
 
@@ -44,6 +46,7 @@ public class Hero {
         this.currentMana = 50;
         this.classLevels = new HashMap<>();
         this.classLevels.put(heroClass, 1);
+        this.classStrategy = createStrategy(heroClass);
         this.specializationClass = null;
         this.hybridClass = null;
         this.experience = 0;
@@ -52,36 +55,58 @@ public class Hero {
         this.statusEffects = new ArrayList<>();
     }
 
-    // Getters and setters
-    public String getName() {
-        return name;
+    // Getters
+    public String getName()          {
+         return name;
     }
-    public HeroClass getHeroClass() {
-        return heroClass;
+    public HeroClass getHeroClass()  {
+         return heroClass;
     }
-    public int getLevel() {
-        return level;
+    public int getLevel()            {
+         return level;
     }
-    public int getAttack() {
-        return attack;
+    public int getExperience()       {
+         return experience;
     }
-    public int getDefense() {
-        return defense;
+    public boolean isStunned()       {
+         return isStunned;
     }
-    public int getHealthPoints() {
-        return healthPoints;
+    public boolean isAlive()         {
+         return isAlive;
     }
-    public int getManaPoints() {
-        return manaPoints;
+    public int getCurrentHealth()    {
+         return currentHealth;
     }
-    public int getExperience() {
-        return experience;
+    public int getCurrentMana()      {
+         return currentMana;
     }
-    public boolean isStunned() {
-        return isStunned;
+    public int getShieldAmount()     {
+         return shieldAmount;
     }
-    public boolean isAlive() {
-        return isAlive;
+
+    // Setters used by StatusEffect / abilities
+    public void setStunned(boolean stunned)      {
+        this.isStunned = stunned;
+    }
+    public void setShieldAmount(int shield)      {
+        this.shieldAmount = shield;
+    }
+    public void addShield(int amount)            {
+        this.shieldAmount += amount;
+    }
+
+    // Stat mutators used by HeroClassStrategy implementations
+    public void addBaseAttack(int amount)        {
+        this.baseAttack += amount;
+    }
+    public void addBaseDefense(int amount)       {
+        this.baseDefense += amount;
+    }
+    public void addMaxHealth(int amount)         {
+        this.maxHealth += amount;
+    }
+    public void addMaxMana(int amount)           {
+        this.maxMana += amount;
     }
 
     /**
@@ -107,29 +132,30 @@ public class Hero {
     }
 
     /**
-     * Apply class-specific stat bonuses per level.
+     * Factory: maps a HeroClass enum value to its Strategy implementation.
+     */
+    private HeroClassStrategy createStrategy(HeroClass classType) {
+        switch (classType) {
+            case ORDER:   return new OrderStrategy();
+            case CHAOS:   return new ChaosStrategy();
+            case WARRIOR: return new WarriorStrategy();
+            case MAGE:    return new MageStrategy();
+            default:      return new WarriorStrategy(); // fallback for HYBRID
+        }
+    }
+
+    /**
+     * Apply class-specific stat bonuses per level by delegating to the Strategy.
      */
     private void applyClassBonuses(HeroClass classType) {
-        switch (classType) {
-            case ORDER:
-                maxMana += 5;
-                baseDefense += 2;
-                break;
-            case CHAOS:
-                baseAttack += 3;
-                maxHealth += 5;
-                break;
-            case WARRIOR:
-                baseAttack += 2;
-                baseDefense += 3;
-                break;
-            case MAGE:
-                maxMana += 5;
-                baseAttack += 1;
-                break;
-            default:
-                break;
-        }
+        // Update active strategy when levelling a different class
+        classStrategy = createStrategy(classType);
+        classStrategy.applyLevelBonus(this);
+    }
+
+    /** Returns the abilities available to this hero's current class strategy. */
+    public List<Ability> getClassAbilities() {
+        return classStrategy.getAbilities();
     }
 
     /**
@@ -263,28 +289,25 @@ public class Hero {
         }
     }
 
-    // Level up method (basic, without class bonuses)
-    public void levelUp() {
-        level++;
-        attack++;
-        defense++;
-        healthPoints += 5;
-        manaPoints += 2;
-        // Class bonuses to be added later
-    }
-
-    // Methods for taking damage, healing, using mana, etc.
+    /**
+     * Apply incoming damage. Shield absorbs first, then real HP is reduced.
+     */
     public void takeDamage(int damage) {
-        healthPoints -= damage;
-        if (healthPoints <= 0) {
-            healthPoints = 0;
+        if (shieldAmount > 0) {
+            int absorbed = Math.min(shieldAmount, damage);
+            shieldAmount -= absorbed;
+            damage -= absorbed;
+        }
+        currentHealth -= damage;
+        if (currentHealth <= 0) {
+            currentHealth = 0;
             isAlive = false;
         }
     }
 
     public void useMana(int amount) {
-        manaPoints -= amount;
-        if (manaPoints < 0) manaPoints = 0;
+        currentMana -= amount;
+        if (currentMana < 0) currentMana = 0;
     }
 
     // Status effect handling
@@ -297,7 +320,10 @@ public class Hero {
         List<StatusEffect> expired = new ArrayList<>();
         for (StatusEffect effect : statusEffects) {
             effect.tick();
-            if (effect.isExpired()) expired.add(effect);
+            if (effect.isExpired()) {
+                effect.expire(this);
+                expired.add(effect);
+            }
         }
         statusEffects.removeAll(expired);
     }
@@ -309,7 +335,45 @@ public class Hero {
         return false;
     }
 
+    // -------------------------------------------------------------------------
+    // Combat actions
+    // -------------------------------------------------------------------------
+
+    /**
+     * Basic attack against a single target.
+     * Damage formula: max(0, attacker.getCurrentAttack() - defender.getCurrentDefense())
+     * Returns the actual damage dealt (after shield absorption) for logging purposes.
+     */
+    public int attack(Hero target) {
+        int damage = Math.max(0, this.getCurrentAttack() - target.getCurrentDefense());
+        target.takeDamage(damage);
+        return damage;
+    }
+
+    /**
+     * Defend action — forfeits this hero's turn.
+     * Restores +10 HP and +5 mana as per the game spec.
+     */
+    public void defend() {
+        heal(10);
+        restoreMana(5);
+    }
+
+    /**
+     * Wait action — signals that this hero wants to defer their action to the
+     * end of the turn (FIFO queue).  The actual queuing is managed by
+     * BattleServiceImpl; this method exists so Hero satisfies the UML contract
+     * and can be called uniformly in takeTurn().
+     */
+    public void waitTurn() {
+        // Intentionally empty — deferral logic is handled by the battle orchestrator.
+        // Keeping this here preserves the UML method contract on Hero.
+    }
+
+    // -------------------------------------------------------------------------
     // Ability and mana management
+    // -------------------------------------------------------------------------
+
     public boolean canCast(Ability ability) {
         return currentMana >= ability.getManaCost();
     }

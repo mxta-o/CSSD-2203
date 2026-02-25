@@ -1,8 +1,5 @@
-package src;
+package model;
 
-/**
- * Enum representing the possible hero classes.
- */
 public enum HeroClass {
     ORDER,
     CHAOS,

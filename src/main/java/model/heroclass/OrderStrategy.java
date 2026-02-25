@@ -13,6 +13,7 @@ import java.util.List;
  * Order class strategy.
  * Per-level bonus: +5 mana, +2 defense.
  * Abilities: Protect (25 mana), Heal (35 mana).
+ * With the use of AI
  */
 public class OrderStrategy implements HeroClassStrategy {
 

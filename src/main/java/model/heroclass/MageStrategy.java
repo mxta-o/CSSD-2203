@@ -12,6 +12,7 @@ import java.util.List;
  * Mage class strategy.
  * Per-level bonus: +5 mana, +1 attack.
  * Abilities: Replenish (80 mana).
+ * With the use of AI
  */
 public class MageStrategy implements HeroClassStrategy {
 

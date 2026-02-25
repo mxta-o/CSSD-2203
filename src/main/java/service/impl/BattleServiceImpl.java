@@ -14,6 +14,7 @@ import java.util.Queue;
 /**
  * Implementation of BattleService. Orchestrates the battle flow between teams.
  * Contains orchestration logic only; business rules remain in domain classes.
+ * With the use of AI
  */
 public class BattleServiceImpl implements BattleService {
 

@@ -13,6 +13,7 @@ import java.util.List;
  * Chaos class strategy.
  * Per-level bonus: +3 attack, +5 health.
  * Abilities: Fireball (30 mana), Chain Lightning (40 mana).
+ * With the use of AI
  */
 public class ChaosStrategy implements HeroClassStrategy {
 

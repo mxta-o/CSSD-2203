@@ -12,6 +12,7 @@ import java.util.List;
  * Warrior class strategy.
  * Per-level bonus: +2 attack, +3 defense.
  * Abilities: Berserker Attack (60 mana).
+ * With the use of AI
  */
 public class WarriorStrategy implements HeroClassStrategy {
 

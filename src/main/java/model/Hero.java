@@ -11,6 +11,7 @@ import model.heroclass.MageStrategy;
 
 /**
  * Represents a hero in the Legends of Sword and Wand RPG.
+ * With the use of AI
  */
 public class Hero {
     private String name;
